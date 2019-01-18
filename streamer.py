@@ -33,8 +33,8 @@ class Streamer(object):
                            username=self.account['USERNAME'])
 
     def connect(self,mode='local'):
+        self.driver.connect(mode=mode)
         self.reddit = self.auth()
-        self.driver.connect(mode='local')
         self.update_subreddits()
         self.update_inbox()
 
@@ -114,7 +114,7 @@ class Manager(object):
 
     def connect(self,mode='local'):
         self.streamer.account = self.account
-        self.streamer.connect(mode='local')
+        self.streamer.connect(mode=mode)
 
     def run(self):
         self.driver.check(self.stream_table)
@@ -140,6 +140,6 @@ class Manager(object):
 if __name__ == '__main__':
     man = Manager()
     man.auth()
-    man.connect()
+    man.connect(mode='heroku')
     for post in man():
         print(post)
