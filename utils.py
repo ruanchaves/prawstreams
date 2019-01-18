@@ -56,7 +56,7 @@ class Driver(object):
         if mode == 'local':
             self.conn = psycopg2.connect("dbname={0} user={1}".format(dbname,user))
         if mode == 'heroku':
-            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], ssl_mode='require')
+            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], sslmode='require')
         self.conn.set_session(autocommit=True)
         self.cur = self.conn.cursor()
         self.cur.execute(open(self.init_file,'r').read())
