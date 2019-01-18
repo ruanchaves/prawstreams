@@ -1,11 +1,24 @@
 import os
 from flask import Flask
+from flask_httpauth import HTTPBasicAuth
 app = Flask(__name__)
+auth = HTTPBasicAuth()
 
+users = {
+    'admin' : 'admin'
+}
+
+@auth.get_password
+def get_pw(username):
+    if username in users:
+        return users.get(username)
+    return None
+
+@auth.login_required
 @app.route('/')
 def auth():
     database_key = os.environ.get('DATABASE_URL')
-    return 'Database key: {0}'.format(database_key)
+    return database_key
 
 if __name__ == '__main__':
     app.run()
