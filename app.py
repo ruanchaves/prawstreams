@@ -13,7 +13,7 @@ result = [ x for t in result for x in t ]
 users = {}
 
 for item in result:
-    users[item['user']] = item['password']
+    users[item['username']] = item['password']
 
 @auth.get_password
 def get_pw(username):
