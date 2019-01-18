@@ -14,7 +14,7 @@ def get_pw(username):
     return None
 
 @app.route('/auth')
-@auth.login_required
+#@auth.login_required
 def auth():
     driver = Driver()
     driver.connect(mode='heroku')
