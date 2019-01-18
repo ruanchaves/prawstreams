@@ -14,17 +14,17 @@ def get_pw(username):
     return None
 
 @app.route('/auth')
-#@auth.login_required
+@auth.login_required
 def auth():
+    global users
     driver = Driver()
     driver.connect(mode='heroku')
     result = driver.pull('select row_to_json(users) from users')
     result = [x for t in result for x in t ]
-    return jsonify(result)
-    # for item in result:
-    #     users[item['username']] = item['password']
-    # database_key = os.environ.get('DATABASE_URL')
-    # return jsonify( { 'URI' : database_key } )
+    for item in result:
+        users[item['username']] = item['password']
+    database_key = os.environ.get('DATABASE_URL')
+    return jsonify( { 'URI' : database_key } )
 
 @app.route('/')
 def fetch():
