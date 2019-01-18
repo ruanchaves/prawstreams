@@ -1,0 +1,20 @@
+-- Adapted from https://stackoverflow.com/a/39224859/4882300
+
+with content_json (doc) as ( values ('[ {% for item in content %}
+        {{ item }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+        ]'::json) )
+insert into accounts (
+    {% for item in keys %}
+    {{item}}
+    {% if not loop.last %}
+    , 
+    {% endif }
+    {% endfor %})
+select p.*
+from content_json l
+  cross join lateral json_populate_recordset(null::{{tablename}}, doc) as p
+on conflict (id) do update
+  set {% for item in keys %}
+    {{item}} = excluded.{{item}}{% if not loop.last %}, {% else %};{% endif %}
+    {% endfor %}

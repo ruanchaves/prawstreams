@@ -40,6 +40,7 @@ def accounts():
         return json.dumps(result)
     else:
         input_json = request.get_json(force=True)
+        template = open('jsonexport.sql').read() 
         dct = {'sucess' : 42}
         return jsonify(dct)
 
