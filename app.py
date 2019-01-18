@@ -5,14 +5,7 @@ from utils import Driver, Listener
 import json
 app = Flask(__name__)
 auth = HTTPBasicAuth()
-
-driver = Driver()
-driver.connect(mode='heroku')
-result = driver.pull('select row_to_json(users) from users')
-result = [ x for t in result for x in t ]
 users = {}
-for item in result:
-    users[item['user']] = item['password']
 
 @auth.get_password
 def get_pw(username):
@@ -23,6 +16,13 @@ def get_pw(username):
 @app.route('/auth')
 @auth.login_required
 def auth():
+    driver = Driver()
+    driver.connect(mode='heroku')
+    result = driver.pull('select row_to_json(users) from users')
+    result = [x for t in result for x in t ]
+    print(result)
+    for item in result:
+        users[item['user']] = item['password']
     database_key = os.environ.get('DATABASE_URL')
     return database_key
 
