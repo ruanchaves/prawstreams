@@ -1,12 +1,11 @@
 import os
 from flask import Flask
 app = Flask(__name__)
+database_key = os.environ.get('DATABASE_URL')
 
 @app.route('/')
 def auth():
-    key = os.environ.get('DATABASE_URL')
-    print(key)
-    return 'Database key: {0}'.format(key)
+    return 'Database key: {0}'.format(database_key)
 
 if __name__ == '__main__':
     app.run()
