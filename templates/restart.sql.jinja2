@@ -1,0 +1,14 @@
+drop table if exists 
+    {# begin jinja2 #}{{ table }}{# end jinja2 #};
+create table 
+    {# begin jinja2 #}
+    {{ table }}
+    {% for key, value in content[0].items() %}
+        {{ " (" if loop.first }}
+       {% if value is number  %} {{key}} SERIAL PRIMARY KEY
+     {% elif value == true or value == false or value == none %} {{key}} BOOLEAN
+      {% elif value is string %} {{key}} VARCHAR
+    {% endif %}
+      {{ ") " if loop.last else "," }}
+    {% endfor %}
+    {# end jinja2 #};

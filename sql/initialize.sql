@@ -1,10 +1,3 @@
-DROP TABLE IF EXISTS stream;
-
-CREATE TABLE stream(
-    id SERIAL PRIMARY KEY,
-    {% for key, value in stream.items() %}
-    {{key}} {{value}}{% if not loop.last %},{% endif %}{% endfor %});
-
 CREATE TABLE IF NOT EXISTS subreddits(
     id SERIAL PRIMARY KEY,
     name VARCHAR);

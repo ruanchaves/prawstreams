@@ -1,20 +1,38 @@
--- Adapted from https://stackoverflow.com/a/39224859/4882300
+{# Adapted from https://stackoverflow.com/a/39224859/4882300 #}
 
-with content_json (doc) as ( values ('[ {% for item in content %}
-        {{ item }}{% if not loop.last %},{% endif %}
+with content_json (doc) as ( values (
+
+    {# begin jinja2 #}
+     {% for unit in content %}
+       {{ "'[" if loop.first }}
+        {% for key, value in unit.items() %}
+            {{ "{" if loop.first }}
+             "{{ key }}" : {% if value is number %} {{ value }}  {% else %} "{{ value }}"  {% endif %} {{ ", " if not loop.last }}
+          {{ "}" if loop.last }}
         {% endfor %}
-        ]'::json) )
-insert into accounts (
-    {% for item in keys %}
-    {{item}}
-    {% if not loop.last %}
-    , 
-    {% endif }
-    {% endfor %})
+       {{ "]'::json" if loop.last else ", "}}
+    {% endfor %}
+    {# end jinja2 #}
+
+        ) )
+insert into 
+
+     {# begin jinja2 #}
+    {{ table }} (
+    {% for key, value in content[0].items() %}
+        {{ key }}
+        {{ ", " if not loop.last else ")" }}
+    {% endfor %}
+    {# end jinja2 #}
+
 select p.*
 from content_json l
-  cross join lateral json_populate_recordset(null::{{tablename}}, doc) as p
+  cross join lateral json_populate_recordset(null::{# begin jinja2 #}{{ table }}{# end jinja2 #}, doc) as p
 on conflict (id) do update
-  set {% for item in keys %}
-    {{item}} = excluded.{{item}}{% if not loop.last %}, {% else %};{% endif %}
+  set
+
+     {# begin jinja2 #}
+    {% for key, value in content[0].items() %}
+        {{ key }} = excluded.{{ key }}{{ ", " if not loop.last else ";" }}
     {% endfor %}
+    {# end jinja2 #}
