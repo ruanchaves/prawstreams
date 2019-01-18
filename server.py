@@ -1,4 +1,4 @@
-from utils import Driver
+from utils import Driver, Listener
 import psycopg2
 
 from flask import Flask
@@ -11,9 +11,14 @@ def get_users():
 
 @app.route("/")
 def home():
-    pass
+    def listen():
+        listener = Listener()
+        listener.connect(mode='heroku')
+        for item in listen:
+            yield item
+        return Response(listen(), mimetype='json')
 
 @app.route("/auth")
 @auth.login_required
 def auth():
-    return 'hello'
+    return os.environ['DATABASE_URL']
