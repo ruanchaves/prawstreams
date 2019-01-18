@@ -1,28 +1,17 @@
 import os
 from flask import Flask, Response, request, jsonify
-from flask_httpauth import HTTPBasicAuth
 from utils import Driver, Listener
 import json
-app = Flask(__name__)
-auth = HTTPBasicAuth()
-users = {}
 
-@auth.get_password
+app = Flask(__name__)
+
 def get_pw(username):
     if username in users:
         return users.get(username)
     return None
 
 @app.route('/auth')
-@auth.login_required
 def auth():
-    global users
-    driver = Driver()
-    driver.connect(mode='heroku')
-    result = driver.pull('select row_to_json(users) from users')
-    result = [x for t in result for x in t ]
-    for item in result:
-        users[item['username']] = item['password']
     database_key = os.environ.get('DATABASE_URL')
     return jsonify( { 'URI' : database_key } )
 
