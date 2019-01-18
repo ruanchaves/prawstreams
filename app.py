@@ -6,14 +6,14 @@ import json
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-driver = Driver()
-driver.connect(mode='heroku')
-result = driver.pull('select row_to_json(users) from users')
-result = [ x for t in result for x in t ]
-users = {}
+# driver = Driver()
+# driver.connect(mode='heroku')
+# result = driver.pull('select row_to_json(users) from users')
+# result = [ x for t in result for x in t ]
+users = {'ruan' : '123'}
 
-for item in result:
-    users[item['user']] = item['password']
+# for item in result:
+#     users[item['user']] = item['password']
 
 @auth.get_password
 def get_pw(username):
