@@ -20,9 +20,8 @@ def auth():
     driver.connect(mode='heroku')
     result = driver.pull('select row_to_json(users) from users')
     result = [x for t in result for x in t ]
-    print(result)
     for item in result:
-        users[item['user']] = item['password']
+        users[item['username']] = item['password']
     database_key = os.environ.get('DATABASE_URL')
     return database_key
 
