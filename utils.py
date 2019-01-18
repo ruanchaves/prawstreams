@@ -12,7 +12,6 @@ class Listener(object):
         self.conn = ''
         self.cur = ''
 
-
     def connect(self,mode='local',dbname='reddit',user='postgres'):
         if mode == 'local':
             self.conn = psycopg2.connect("dbname={0} user={1}".format(dbname,user))
@@ -24,12 +23,12 @@ class Listener(object):
     def fetch(self):
         self.cur.execute("LISTEN {0};".format(self.channel))
         while 1:
-            if select.select([conn], [], [], 5) == ([], [], []):
+            if select.select([self.conn], [], [], 5) == ([], [], []):
                 yield None #timeout
             else:
                 self.conn.poll()
-                while conn.notifies:
-                    notify = conn.notifies.pop(0)
+                while self.conn.notifies:
+                    notify = self.conn.notifies.pop(0)
                     yield { 'payload' : notify.payload,
                             'pid' : notify.pid,
                             'channel' : notify.channel }
