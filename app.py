@@ -23,7 +23,7 @@ def auth():
     for item in result:
         users[item['username']] = item['password']
     database_key = os.environ.get('DATABASE_URL')
-    return jsonify(users)
+    return jsonify(database_key)
 
 @app.route('/')
 def fetch():
