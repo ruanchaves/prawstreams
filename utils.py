@@ -11,8 +11,12 @@ class Listener(object):
         self.conn = ''
         self.cur = ''
 
-    def connect(self,*args,**kwargs):
-        self.conn = psycopg2.connect(*args,**kwargs)
+
+    def connect(self,mode='local',dbname='reddit',user='postgres'):
+        if mode == 'local':
+            self.conn = psycopg2.connect("dbname={0} user={1}".format(dbname,user))
+        if mode == 'heroku':
+            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], sslmode='require')
         self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         self.cur = self.conn.cursor()
 
