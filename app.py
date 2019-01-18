@@ -32,17 +32,16 @@ def fetch():
     return Response(listen(),mimetype='json')
 
 @app.route('/pull/<variable>',methods=['GET'])
-def pull():
+def pull(variable):
     driver = Driver()
     driver.connect(mode='heroku')
-    input_json = request.get_json(force=True)
-    query = 'select row_to_json({0}) from {0}'.format(input_json['table'])
+    query = 'select row_to_json({0}) from {0}'.format(variable)
     try:
         result = driver.pull(query)
     except Exception as e:
         return { 'status' : 400, 'exception' : e }
     result = [ x for t in result for x in t ]
-    output_dct = { 'content' : result , 'table' : input_json['table'] }
+    output_dct = { 'content' : result , 'table' : variable }
     return jsonify(output_dct)
 
 @app.route('/push',methods=['POST'])
