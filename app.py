@@ -4,7 +4,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def auth():
-    return os.environ['DATABASE_URL']
+    key = os.environ['DATABASE_URL']
+    return 'Database key: {0}'.format(key)
 
 if __name__ == '__main__':
     app.run()
