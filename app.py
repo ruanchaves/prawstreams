@@ -1,5 +1,5 @@
 import os
-from flask import Flask, Response
+from flask import Flask, Response, request, jsonify
 from flask_httpauth import HTTPBasicAuth
 from utils import Driver, Listener
 import json
@@ -31,12 +31,17 @@ def fetch():
             yield json.dumps(item)
     return Response(listen(),mimetype='json')
 
-@app.route('/accounts')
+@app.route('/accounts',methods=['POST', 'GET'])
 def accounts():
     driver = Driver()
     driver.connect(mode='heroku')
-    result = driver.pull('select * from accounts')
-    return json.dumps(result)
+    if request.method != "POST":
+        result = driver.pull('select * from accounts')
+        return json.dumps(result)
+    else:
+        input_json = request.get_json(force=True)
+        dct = {'sucess' : 42}
+        return jsonify(dct)
 
 if __name__ == '__main__':
     app.run()

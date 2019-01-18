@@ -50,7 +50,6 @@ class Driver(object):
         self.init_file = 'initialize.sql'
         self.conn_args = []
         self.conn_kwargs = {}
-#        self.connect(mode='heroku')
 
     def connect(self,mode='local',dbname='reddit',user='postgres'):
         if mode == 'local':
