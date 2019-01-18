@@ -11,12 +11,13 @@ def get_users():
 
 @app.route("/")
 def home():
-    def listen():
-        listener = Listener()
-        listener.connect(mode='heroku')
-        for item in listen:
-            yield item
-        return Response(listen(), mimetype='json')
+    return 'hello world'
+    # def listen():
+    #     listener = Listener()
+    #     listener.connect(mode='heroku')
+    #     for item in listen:
+    #         yield item
+    #     return Response(listen(), mimetype='json')
 
 @app.route("/auth")
 @auth.login_required
