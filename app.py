@@ -36,11 +36,10 @@ def pull():
     driver = Driver()
     driver.connect(mode='heroku')
     input_json = request.get_json(force=True)
+    query = 'select row_to_json({0}) from {0}'.format(input_json['table'])
     result = driver.pull(query)
     result = [ x for t in result for x in t ][0]
-    query = 'select row_to_json({0}) from {0}'.format(result)
-    output_json = driver.push(query)
-    output_dct = { 'content' : output_json , 'table' : result }
+    output_dct = { 'content' : result , 'table' : input_json['table'] }
     return jsonify(output_dct)
 
 @app.route('/push',methods=['POST'])
