@@ -65,13 +65,13 @@ def overwrite(variable):
     driver.push(restart_query)
     driver.push(insert_query)
 
-@app.route('/test', methods=['GET'])
-def test():
-    input_json = { 'content' : { 'id' : 0, 'body' : '', 'author' : '', 'is_something' : true  } ,  'table' : 'stream' }
-    restart_query = render_template('restart.sql.jinja2', **input_json)
-    insert_query = render_template('jsondump.sql.jinja2', **input_json)
-    dct = { 'restart' : restart_query, 'insert' : insert_query }
-    return jsonify(dct)
+# @app.route('/test', methods=['GET'])
+# def test():
+#     input_json = { 'content' : { 'id' : 0, 'body' : '', 'author' : '', 'is_something' : true  } ,  'table' : 'stream' }
+#     restart_query = render_template('restart.sql.jinja2', **input_json)
+#     insert_query = render_template('jsondump.sql.jinja2', **input_json)
+#     dct = { 'restart' : restart_query, 'insert' : insert_query }
+#     return jsonify(dct)
 
 if __name__ == '__main__':
     app.run()
