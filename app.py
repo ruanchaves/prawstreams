@@ -14,8 +14,8 @@ def get_pw(username):
         return users.get(username)
     return None
 
-@auth.login_required
 @app.route('/')
+@auth.login_required
 def auth():
     database_key = os.environ.get('DATABASE_URL')
     return database_key
