@@ -14,8 +14,8 @@ auth = HTTPBasicAuth()
 
 users = { 'ruan' : '123' }
 
-for item in result:
-    users[item['user']] = item['password']
+# for item in result:
+#     users[item['user']] = item['password']
 
 @auth.get_password
 def get_pw(username):
