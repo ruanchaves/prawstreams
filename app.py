@@ -2,6 +2,7 @@ import os
 from flask import Flask
 app = Flask(__name__)
 database_key = os.environ.get('DATABASE_URL')
+print(database_key)
 
 @app.route('/')
 def auth():
