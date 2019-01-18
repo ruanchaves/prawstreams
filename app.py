@@ -2,6 +2,7 @@ import os
 from flask import Flask, Response
 from flask_httpauth import HTTPBasicAuth
 from utils import Driver, Listener
+import json
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
@@ -27,7 +28,7 @@ def fetch():
         listener = Listener()
         listener.connect(mode='heroku')
         for item in listener:
-            yield item
+            yield json.dumps(item)
     return Response(listen(),mimetype='json')
 
 
