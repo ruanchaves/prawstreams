@@ -87,11 +87,11 @@ class Streamer(object):
 
 class Manager(object):
 
-    def __init__(self):
+    def __init__(self,mode='local'):
         self.account = ''
 
         self.driver = Driver()
-        self.driver.connect(mode='local')
+        self.driver.connect(mode=mode)
 
         self.streamer = Streamer()
 
@@ -138,7 +138,7 @@ class Manager(object):
         return self.run()
 
 if __name__ == '__main__':
-    man = Manager()
+    man = Manager(mode='heroku')
     man.auth()
     man.connect(mode='heroku')
     for post in man():
