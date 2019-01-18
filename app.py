@@ -13,7 +13,7 @@ result = [ x for t in result for x in t ]
 users = {}
 
 for item in result:
-    users[item['username']] = item['password']
+    users[item['user']] = item['password']
 
 @auth.get_password
 def get_pw(username):
@@ -41,10 +41,7 @@ def pull(variable):
     driver = Driver()
     driver.connect(mode='heroku')
     query = 'select row_to_json({0}) from {0}'.format(variable)
-    try:
-        result = driver.pull(query)
-    except Exception as e:
-        return jsonify({'status' : 400, 'exception' : e })
+    result = driver.pull(query)
     result = [ x for t in result for x in t ]
     output_dct = { 'content' : result }
     return jsonify(output_dct)
@@ -55,11 +52,7 @@ def push():
     driver.connect(mode='heroku')
     input_json = request.get_json(force=True)
     query = render_template('jsondump.sql.jinja2', **input_json)
-    try:
-        driver.push(query)
-        return { 'status' : 200 }
-    except Exception as e:
-        return { 'status' : 400, 'exception' : e }
+    driver.push(query)
 
 @app.route('/overwrite/<variable>',methods=['POST'])
 def overwrite(variable):
@@ -69,12 +62,16 @@ def overwrite(variable):
     input_json['table'] = variable
     restart_query = render_template('restart.sql.jinja2', **input_json)
     insert_query = render_template('jsondump.sql.jinja2', **input_json)
-    try:
-        driver.push(restart_query)
-        driver.push(insert_query)
-        return { 'status' : 200 }
-    except Exception as e:
-        return { 'status' : 400, 'exception' : e }
+    driver.push(restart_query)
+    driver.push(insert_query)
+
+@app.route('/test', methods=['GET'])
+def test():
+    input_json = { 'content' : { 'id' : 0, 'body' : '', 'author' : '', 'is_something' : true  } ,  'table' : 'stream' }
+    restart_query = render_template('restart.sql.jinja2', **input_json)
+    insert_query = render_template('jsondump.sql.jinja2', **input_json)
+    dct = { 'restart' : restart_query, 'insert' : insert_query }
+    return jsonify(dct)
 
 if __name__ == '__main__':
     app.run()
