@@ -6,9 +6,14 @@ import json
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-users = {
-    'prawstreams' : 'prawstreams'
-}
+driver = Driver()
+driver.connect(mode='heroku')
+result = driver.pull('select row_to_json(users) from users')
+result = [ x for t in result for x in t ]
+users = {}
+
+for item in result:
+    users[item['user']] = item['password']
 
 @auth.get_password
 def get_pw(username):
@@ -39,9 +44,9 @@ def pull(variable):
     try:
         result = driver.pull(query)
     except Exception as e:
-        return { 'status' : 400, 'exception' : e }
+        return jsonify({'status' : 400, 'exception' : e })
     result = [ x for t in result for x in t ]
-    output_dct = { 'content' : result , 'table' : variable }
+    output_dct = { 'content' : result }
     return jsonify(output_dct)
 
 @app.route('/push',methods=['POST'])
@@ -56,11 +61,12 @@ def push():
     except Exception as e:
         return { 'status' : 400, 'exception' : e }
 
-@app.route('/overwrite',methods=['POST'])
-def overwrite():
+@app.route('/overwrite/<variable>',methods=['POST'])
+def overwrite(variable):
     driver = Driver()
     driver.connect(mode='heroku')
     input_json = request.get_json(force=True)
+    input_json['table'] = variable
     restart_query = render_template('restart.sql.jinja2', **input_json)
     insert_query = render_template('jsondump.sql.jinja2', **input_json)
     try:
