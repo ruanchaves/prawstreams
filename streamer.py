@@ -7,7 +7,7 @@ from utils import Driver
 
 class Streamer(object):
     def __init__(self,*args,**kwargs):
-        self.reddit = ''
+        self.reddit = []
         self.subreddits_names = []
         self.subreddits_table = 'subreddits'
         self.inbox_table = 'inbox'
@@ -34,7 +34,7 @@ class Streamer(object):
 
     def connect(self,mode='local'):
         self.driver.connect(mode=mode)
-        self.reddit = self.auth()
+        self.reddit.append(self.auth())
         self.update_subreddits()
         self.update_inbox()
 
@@ -56,11 +56,12 @@ class Streamer(object):
                        'submission_replies' : values[6] }
 
     def translate(self):
-        self.subreddits = [ self.reddit.subreddit(x) for x in self.subreddits_names ]
+        self.subreddits = [ random.choice(self.reddit).subreddit(x) for x in self.subreddits_names ]
 
     def get_inbox(self,function,**kwargs):
         if self.inbox[function] == True:
-            self.results.extend(self.reddit.inbox.__getattribute__(function).__call__(**kwargs))
+            for idx, item in enumerate(self.reddit):
+                self.results.extend(self.reddit.__getitem__(idx).inbox.__getattribute__(function).__call__(**kwargs))
 
     def compile(self,**kwargs):
         self.results = []
@@ -118,17 +119,21 @@ class Manager(object):
 
     def run(self):
         self.driver.check(self.stream_table)
-        select_query = 'select * from {0} where reddit_id = %s'
+        columns_query = "select column_name from information_schema.columns where table_name = '{0}';".format(self.stream_table)
+        columns_result = self.driver.pull(columns_query)
+        columns_result = [ x for t in columns_result for x in t ]
+        columns_result = [ x for x in columns_result if x != 'id_' ]
+        select_query = "select * from {0} where id = '{1}'"
         insert_query = 'insert into {0} (reddit_id,class) values (%s,%s)'
         idx = 0
         for post in self.streamer:
             idx += 1
             post_type = post.__class__.__name__
             post_id = post.id
-            copies = self.driver.pull_var(select_query.format(self.stream_table), (post_id,))
+            copies = self.driver.pull(select_query.format(self.stream_table, post_id))
             copies = [ x for t in copies for x in t ]
             if not any(copies):
-                self.driver.push_var(insert_query.format(self.stream_table), (post_id,post_type) )
+                self.driver.push(insert_query.format(self.stream_table))
             if idx >= self.limit:
                 self.driver.check(self.stream_table)
                 idx = 1

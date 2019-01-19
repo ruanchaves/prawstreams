@@ -5,9 +5,11 @@ create table
     {{ table }}
     {% for key, value in content[0].items() %}
         {{ " (" if loop.first }}
-       {% if value is number  %} {{key}} SERIAL PRIMARY KEY
-     {% elif value == true or value == false or value == none %} {{key}} BOOLEAN
-      {% elif value is string %} {{key}} VARCHAR
+       {% if value is sameas true or value is sameas false or value is sameas none %} {{key}} BOOLEAN
+       {% elif key == 'id'  %} {{key}} SERIAL PRIMARY KEY
+      {% elif value is number %} {{key}} INTEGER
+       {% elif value == true or value == false or value == none %} {{key}} BOOLEAN
+       {% elif value is string %} {{key}} VARCHAR
     {% endif %}
       {{ ") " if loop.last else "," }}
     {% endfor %}
