@@ -100,7 +100,7 @@ class Manager(object):
         self.accounts_table = 'accounts'
         self.limit = self.driver.limit
 
-    def auth(self):
+    def auth(self,username):
         query = 'SELECT * FROM accounts'
         account = self.driver.pull(query)
         account = random.choice(account)
@@ -118,33 +118,49 @@ class Manager(object):
         self.streamer.connect(mode=mode)
 
     def run(self):
+
         self.driver.check(self.stream_table)
         columns_query = "select column_name from information_schema.columns where table_name = '{0}';".format(self.stream_table)
         columns_result = self.driver.pull(columns_query)
         columns_result = [ x for t in columns_result for x in t ]
         columns_result = [ x for x in columns_result if x != 'id_' ]
         select_query = "select * from {0} where id = '{1}'"
-        insert_query = 'insert into {0} (reddit_id,class) values (%s,%s)'
+        columns_lst = ",".join(columns_result)
+        insert_query = 'insert into {0} ({1}) values ({2})'
+
         idx = 0
         for post in self.streamer:
             idx += 1
-            post_type = post.__class__.__name__
-            post_id = post.id
+            attributes = []
+            for column_name in columns_result:
+                attr_lst = column_name.split(".")
+                try:
+                    item = post.__getattribute__(attr_lst[0])
+                    for a in attr_lst[1:]:
+                        item = item.__getattribute__(a)
+                    attributes.append(item)
+                except AttributeError:
+                    attributes.append(None)
+
+            attributes_lst = ",".join(attributes)
             copies = self.driver.pull(select_query.format(self.stream_table, post_id))
             copies = [ x for t in copies for x in t ]
+
             if not any(copies):
-                self.driver.push(insert_query.format(self.stream_table))
+                self.driver.push(insert_query.format(self.stream_table, columns_lst, attributes_lst))
+
             if idx >= self.limit:
                 self.driver.check(self.stream_table)
                 idx = 1
-            yield post_type, post_id
+
+            yield dict(zip(columns_result, attributes))
 
     def __call__(self):
         return self.run()
 
 if __name__ == '__main__':
-    man = Manager(mode='heroku')
+    man = Manager(mode='local')
     man.auth()
-    man.connect(mode='heroku')
+    man.connect(mode='local')
     for post in man():
         print(post)
