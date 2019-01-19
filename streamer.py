@@ -2,28 +2,102 @@ import praw
 import os
 import psycopg2
 import random
-
+import re
 from utils import Driver
+
+
+class ArchiveBot(Bot):
+
+    def __init__(self,username):
+        super().__init__(username)
+
+    def archive(self,body):
+        urls = get_urls(body)
+        for url in urls:
+            page, is_not_cache = savepagenow.capture_or_cache(url)
+        return page
+
+    def compile(self,md_urls):
+
+        if not md_urls:
+            return None
+        if any([ self.regexp(v) for v in md_urls.values() ]):
+            return None
+
+        template = self.template
+        body = ''
+
+        for key in md_urls.keys():
+            body += '* [{0}]({1})    \n'.format(key,self.archive(md_urls[key]) )
+        return body
+
+    def regexp(self,text):
+        query = "SELECT expression FROM regexp;"
+        result = [ y for x in self.driver.pull(query) for y in x ]
+        for pattern in result:
+            if pattern in text:
+                return True
+        else:
+            return False
+
+    def process(self,body):
+        INLINE_LINK_RE = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
+        md_urls = dict(INLINE_LINK_RE.findall(body))
+        return md_urls
+
+    def get_message(self,obj):
+        body = self.get_body(obj)
+        message = self.compile(self.process(body))
+        if not message:
+            return None
+        message = self.template.format(message)
+        return message
+
+    def get_body(self,obj):
+        if self.is_class(obj, 'comment'):
+            body = obj.body
+        elif self.is_class(obj,'submission'):
+            body = "[{0}]({1}) {2}".format(obj.title,obj.url,obj.selftext)
+        return body
+
+    def __call__(self,item):
+
+        myself = self.reddit.redditor(self.username)
+        if not self.check(myself.id):
+            self.block(myself.id,'redditor')
+
+        obj = self.read(item)
+        obj_id = obj.id
+        body = self.get_body(obj)
+        redditor = obj.author
+        redditor_id = redditor.id
+
+
+        if self.unblock_command in body:
+            if self.check(redditor_id):
+                self.unblock(redditor_id)
+                return None
+        elif self.block_command in body:
+            if not self.check(redditor_id):
+                self.block(redditor_id,'redditor')
+                return None
+
+        if self.check(obj_id):
+            return None
+        if self.check(redditor_id):
+            return None
+
+        try:
+            obj.reply( self.get_message(obj) )
+        except Exception as e:
+            pass
+        self.block(obj.id, self.get_type(obj))
 
 class Streamer(object):
     def __init__(self,*args,**kwargs):
-        self.reddit = []
-        self.subreddits_names = []
-        self.subreddits_table = 'subreddits'
-        self.inbox_table = 'inbox'
-        self.subreddits = []
-        self.results = []
-        self.account = {}
-
-        self.inbox = { 'all' : False,
-                       'comment_replies' : False,
-                       'mentions' : False,
-                       'messages' : False,
-                       'stream' : False,
-                       'submission_replies' : False }
-
+        self.reddit = ''
         self.driver = Driver()
-
+        self.bot = ArchiveBot()
 
     def auth(self):
         return  praw.Reddit(client_id=self.account['CLIENT_ID'],
@@ -33,77 +107,10 @@ class Streamer(object):
                            username=self.account['USERNAME'])
 
     def connect(self,mode='local'):
-        self.driver.connect(mode=mode)
-        self.reddit.append(self.auth())
-        self.update_subreddits()
-        self.update_inbox()
-
-    def update_subreddits(self):
-        subs = self.driver.pull('select * from {0}'.format(self.subreddits_table))
-        self.subreddits_names = [ x for t in subs for x in t ]
-        self.subreddits_names = [ x for x in self.subreddits_names if isinstance(x,str) ]
-
-    def update_inbox(self):
-        self.driver = Driver()
-        inbox = self.driver.pull('select * from {0}'.format(self.inbox_table))
-        print(inbox)
-        values = [ x for t in inbox for x in t ]
-        self.inbox = { 'all' : values[1],
-                       'comment_replies' : values[2],
-                       'mentions' : values[3],
-                       'messages' : values[4],
-                       'stream' : values[5],
-                       'submission_replies' : values[6] }
-
-    def translate(self):
-        self.subreddits = [ random.choice(self.reddit).subreddit(x) for x in self.subreddits_names ]
-
-    def get_inbox(self,function,**kwargs):
-        if self.inbox[function] == True:
-            for idx, item in enumerate(self.reddit):
-                self.results.extend(self.reddit.__getitem__(idx).inbox.__getattribute__(function).__call__(**kwargs))
-
-    def compile(self,**kwargs):
-        self.results = []
-        for subreddit in self.subreddits:
-            if self.submissions:
-                submissions = subreddit.new(**kwargs)
-            if self.comments:
-                comments = subreddit.comments(**kwargs)
-            self.results.extend(submissions)
-            self.results.extend(comments)
-        for key in self.inbox.keys():
-            self.get_inbox(key)
-        self.results.sort(key=lambda post: post.created_utc, reverse=True)
-        return self.results
-
-    def __iter__(self):
-        stream = praw.models.util.stream_generator(lambda **kwargs: self.compile(**kwargs))
-        for idx,post in enumerate(stream):
-            yield post
-
-    def __call__(self, *args, **kwargs):
-        self.update(*args, **kwargs)
-        self.translate()
-
-class Manager(object):
-
-    def __init__(self,mode='local'):
-        self.account = ''
-
-        self.driver = Driver()
-        self.driver.connect(mode=mode)
-
-        self.streamer = Streamer()
-
-        self.stream_table = 'stream'
-        self.accounts_table = 'accounts'
-        self.limit = self.driver.limit
-
-    def auth(self,username):
+        self.driver.connect(mode='local')
         query = 'SELECT * FROM accounts'
         account = self.driver.pull(query)
-        account = random.choice(account)
+        account = account[0]
         self.account = {
                 'id' : account[0],
                 'CLIENT_ID' : account[1],
@@ -112,55 +119,43 @@ class Manager(object):
                 'USER_AGENT' : account[4],
                 'USERNAME' : account[5]
             }
+        self.reddit = self.auth()
 
-    def connect(self,mode='local'):
-        self.streamer.account = self.account
-        self.streamer.connect(mode=mode)
+    def compile(self,**kwargs):
+        self.results = []
+        mentions = self.reddit.inbox.unread(**kwargs)
+        self.results.extend(mentions)
+        self.results.sort(key=lambda post: post.created_utc, reverse=True)
+        return self.results
 
-    def run(self):
-
-        self.driver.check(self.stream_table)
-        columns_query = "select column_name from information_schema.columns where table_name = '{0}';".format(self.stream_table)
-        columns_result = self.driver.pull(columns_query)
-        columns_result = [ x for t in columns_result for x in t ]
-        columns_result = [ x for x in columns_result if x != 'id_' ]
-        select_query = "select * from {0} where id = '{1}'"
-        columns_lst = ",".join(columns_result)
-        insert_query = 'insert into {0} ({1}) values ({2})'
-
-        idx = 0
-        for post in self.streamer:
-            idx += 1
-            attributes = []
-            for column_name in columns_result:
-                attr_lst = column_name.split(".")
-                try:
-                    item = post.__getattribute__(attr_lst[0])
-                    for a in attr_lst[1:]:
-                        item = item.__getattribute__(a)
-                    attributes.append(item)
-                except AttributeError:
-                    attributes.append(None)
-
-            attributes_lst = ",".join(attributes)
-            copies = self.driver.pull(select_query.format(self.stream_table, post_id))
-            copies = [ x for t in copies for x in t ]
-
-            if not any(copies):
-                self.driver.push(insert_query.format(self.stream_table, columns_lst, attributes_lst))
-
-            if idx >= self.limit:
-                self.driver.check(self.stream_table)
-                idx = 1
-
-            yield dict(zip(columns_result, attributes))
-
-    def __call__(self):
-        return self.run()
+    def __iter__(self):
+        stream = praw.models.util.stream_generator(lambda **kwargs: self.compile(**kwargs))
+        for idx,post in enumerate(stream):
+            self.reddit.inbox.mark_read([post])
+            body = ''
+            try:
+                post_type = post.parent().__class__.__name__.lower()
+            except:
+                continue
+            if post_type == 'submission':
+                url = post.parent().url
+                title = post.parent().title
+                if 'reddit.com' in url:
+                    try:
+                        selftext = post.parent().selftext
+                        body =  " ".join([title, selftext])
+                    except:
+                        continue
+                else:
+                    body = " ".join([title, url])
+            elif post_type == 'comment' or post_type == 'message':
+                body = post.parent().body
+            else:
+                continue
+            post.reply(self.bot.archive(body))
 
 if __name__ == '__main__':
-    man = Manager(mode='local')
-    man.auth()
-    man.connect(mode='local')
-    for post in man():
+    stream = Streamer()
+    stream.connect()
+    for post in stream:
         print(post)
