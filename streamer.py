@@ -5,7 +5,6 @@ import random
 import re
 from utils import Driver
 
-
 class ArchiveBot(Bot):
 
     def __init__(self,username):
@@ -72,7 +71,6 @@ class ArchiveBot(Bot):
         redditor = obj.author
         redditor_id = redditor.id
 
-
         if self.unblock_command in body:
             if self.check(redditor_id):
                 self.unblock(redditor_id)
@@ -96,8 +94,10 @@ class ArchiveBot(Bot):
 class Streamer(object):
     def __init__(self,*args,**kwargs):
         self.reddit = ''
+        self.account = ''
         self.driver = Driver()
         self.bot = ArchiveBot()
+        self.error = "There was an error processing your request."
 
     def auth(self):
         return  praw.Reddit(client_id=self.account['CLIENT_ID'],
@@ -128,31 +128,55 @@ class Streamer(object):
         self.results.sort(key=lambda post: post.created_utc, reverse=True)
         return self.results
 
+    def get_body(self,post):
+        try:
+            post_type = post.parent().__class__.__name__.lower()
+        except:
+            return self.error
+        if post_type == 'submission':
+            url = post.parent().url
+            title = post.parent().title
+            if 'reddit.com' in url:
+                try:
+                    selftext = post.parent().selftext
+                    body =  " ".join([title, selftext])
+                except:
+                    return self.error
+            else:
+                return " ".join([title, url])
+        elif post_type == 'comment' or post_type == 'message':
+            return post.parent().body
+        else:
+            return self.error
+
+    def get_url(self, body, length):
+
+
     def __iter__(self):
+        username = self.account['USERNAME']
         stream = praw.models.util.stream_generator(lambda **kwargs: self.compile(**kwargs))
         for idx,post in enumerate(stream):
             self.reddit.inbox.mark_read([post])
             body = ''
-            try:
-                post_type = post.parent().__class__.__name__.lower()
-            except:
-                continue
-            if post_type == 'submission':
-                url = post.parent().url
-                title = post.parent().title
-                if 'reddit.com' in url:
+
+            if post.parent().author == username:
+                chain = []
+                while True:
                     try:
-                        selftext = post.parent().selftext
-                        body =  " ".join([title, selftext])
+                        parent = post.parent()
+                        chain.append(parent)
                     except:
-                        continue
+                        break
+                chain_authors = [ x.author for x in chain ])
+                for idx,item in chain_authors[::-1]:
+                    if item == username:
+                        original_post = chain[idx-1]
+                        body = self.get_body(original_post)
+                        break
                 else:
-                    body = " ".join([title, url])
-            elif post_type == 'comment' or post_type == 'message':
-                body = post.parent().body
-            else:
-                continue
-            post.reply(self.bot.archive(body))
+                        body = self.get_body(post.parent())
+            chain_length = len([x for x in chain if x == username ])
+            post.reply(self.get_url(body, chain_length))
 
 if __name__ == '__main__':
     stream = Streamer()
